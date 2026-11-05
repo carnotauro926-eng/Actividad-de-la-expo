@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Ruleta de las Necesidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#0b1026; --night2:#151b3d; --gold:#e2b485; --gold-bright:#f6d28f; --gold-deep:#b8843f;
+    --ink:#f4ead8; --ok:#7bd8a4; --bad:#ff8a8a;
+    --title:'Cinzel', 'Trajan Pro', Georgia, serif;
+    --body:'Lora', Georgia, 'Times New Roman', serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--body); color:var(--ink); min-height:100%;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(226,180,133,.18), transparent 60%),
+      radial-gradient(900px 600px at 0% 110%, rgba(90,110,200,.22), transparent 60%),
+      linear-gradient(180deg, var(--night) 0%, var(--night2) 100%);
+    background-attachment:fixed; overflow-x:hidden;
+  }
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #confetti{position:fixed;inset:0;z-index:60;pointer-events:none}
+
+  .moon{position:fixed;top:28px;right:34px;width:70px;height:70px;border-radius:50%;z-index:0;
+    background:radial-gradient(circle at 35% 35%, #fff6df, #f1d9a6 60%, #d9b878);
+    box-shadow:0 0 50px 12px rgba(246,210,143,.35); opacity:.9}
+  .moon::after{content:"";position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 70% 40%, #0b1026 0 52%, transparent 53%);transform:translate(14px,-4px) scale(.95);opacity:0}
+  .tree{position:fixed;left:-30px;bottom:-20px;width:min(360px,45vw);opacity:.16;z-index:0;pointer-events:none}
+
+  main{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:28px 18px 60px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+
+  header{text-align:center;margin-bottom:10px}
+  .psi{font-family:var(--title);font-size:2rem;color:var(--gold);text-shadow:0 0 18px rgba(246,210,143,.6)}
+  h1{font-family:var(--title);font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+     font-size:clamp(1.6rem,5vw,3rem);
+     background:linear-gradient(180deg,#fff0c9,var(--gold) 55%,var(--gold-deep));
+     -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 12px rgba(0,0,0,.4))}
+  .sub{font-style:italic;color:#cfc3ad;margin-top:6px;font-size:clamp(.95rem,2.4vw,1.1rem)}
+
+  .screen{display:none;width:100%;animation:fade .6s ease both}
+  .screen.active{display:flex;flex-direction:column;align-items:center}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---------- INTRO ---------- */
+  .intro{margin-top:6vh;text-align:center;max-width:640px}
+  .intro .big{font-family:var(--title);font-size:clamp(1.1rem,3vw,1.5rem);line-height:1.6;margin:18px 0 28px;color:var(--ink)}
+  .intro p{color:#d6cab3;line-height:1.7}
+
+  .btn{font-family:var(--title);font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+    border:none;border-radius:999px;padding:16px 38px;font-size:1.05rem;color:#2a1a05;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+    box-shadow:0 8px 0 #7d5420, 0 18px 30px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.5);
+    transition:transform .12s, box-shadow .12s, filter .2s}
+  .btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-2px)}
+  .btn:active:not(:disabled){transform:translateY(6px);box-shadow:0 2px 0 #7d5420, 0 8px 14px rgba(0,0,0,.45)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.4)}
+  .btn.ghost{background:transparent;color:var(--gold);box-shadow:none;border:1.5px solid var(--gold);padding:12px 26px;font-size:.9rem}
+  .btn.ghost:hover{background:rgba(226,180,133,.12);transform:none}
+
+  /* ---------- WHEEL ---------- */
+  .wheel-area{display:flex;gap:40px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:18px;width:100%}
+  .wheel-wrap{position:relative;width:min(88vw,540px);aspect-ratio:1}
+  .wheel-wrap::before{content:"";position:absolute;inset:-14px;border-radius:50%;
+    background:conic-gradient(from 0deg,var(--gold-deep),var(--gold-bright),var(--gold-deep),var(--gold-bright),var(--gold-deep));
+    box-shadow:0 0 60px rgba(246,210,143,.35), 0 20px 50px rgba(0,0,0,.6)}
+  .wheel-wrap::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:var(--night)}
+  #wheel{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;z-index:2}
+  .pointer{position:absolute;top:-26px;left:50%;transform:translateX(-50%);width:44px;height:58px;z-index:5;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));transform-origin:50% 20%}
+  .pointer.tick{animation:tick .12s ease}
+  @keyframes tick{50%{transform:translateX(-50%) rotate(-14deg)}}
+  .hub{position:absolute;z-index:4;top:50%;left:50%;width:84px;height:84px;transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff1c9,var(--gold) 55%,var(--gold-deep));
+    box-shadow:0 0 0 6px var(--night),0 0 24px rgba(246,210,143,.6);
+    display:grid;place-items:center;font-family:var(--title);font-size:2.1rem;color:#4a2f0a}
+
+  .side{display:flex;flex-direction:column;align-items:center;gap:22px;min-width:260px;max-width:340px}
+  .counter{font-family:var(--title);letter-spacing:.1em;color:var(--gold);text-align:center}
+  .counter b{display:block;font-size:2.6rem;color:var(--ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:40px}
+  .chip{padding:7px 14px;border-radius:999px;font-size:.9rem;border:1px solid rgba(226,180,133,.5);
+    background:rgba(226,180,133,.1);color:var(--gold-bright);display:flex;gap:6px;align-items:center}
+  .chip.ok::before{content:"✦";color:var(--ok)}
+  .chip.no::before{content:"✧";color:var(--bad)}
+  .label{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#a99d86}
+
+  /* ---------- QUESTION ---------- */
+  .overlay{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:16px;
+    background:rgba(5,8,22,.78);backdrop-filter:blur(6px);overflow-y:auto}
+  .overlay.show{display:flex;animation:fade .4s ease both}
+  .card{width:min(760px,100%);margin:auto;border-radius:26px;padding:clamp(20px,4vw,38px);position:relative;
+    background:linear-gradient(160deg,rgba(32,40,92,.95),rgba(15,20,48,.97));
+    border:1.5px solid rgba(226,180,133,.55);
+    box-shadow:0 0 0 6px rgba(226,180,133,.08),0 30px 80px rgba(0,0,0,.65)}
+  .who{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .avatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-family:var(--title);font-weight:900;font-size:1.7rem;color:#2a1a05;
+    background:radial-gradient(circle at 35% 30%,#fff1c9,var(--gold) 55%,var(--gold-deep));box-shadow:0 0 20px rgba(246,210,143,.5)}
+  .who small{display:block;letter-spacing:.2em;text-transform:uppercase;color:#a99d86;font-size:.72rem}
+  .who strong{font-family:var(--title);font-size:1.6rem;color:var(--gold-bright)}
+  .tag{margin-left:auto;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
+    border:1px solid rgba(226,180,133,.5);border-radius:999px;padding:5px 12px;text-align:center}
+  .q{font-family:var(--title);font-weight:500;font-size:clamp(1.15rem,3vw,1.55rem);line-height:1.45;margin-bottom:22px}
+  .opts{display:grid;gap:12px}
+  .opt{display:flex;gap:14px;align-items:flex-start;text-align:left;cursor:pointer;width:100%;
+    font-family:var(--body);font-size:clamp(.95rem,2.4vw,1.08rem);line-height:1.45;color:var(--ink);
+    padding:14px 18px;border-radius:16px;border:1.5px solid rgba(226,180,133,.35);background:rgba(255,255,255,.04);
+    transition:transform .15s,background .2s,border-color .2s}
+  .opt:hover:not(:disabled){background:rgba(226,180,133,.14);border-color:var(--gold);transform:translateX(4px)}
+  .opt .k{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--title);font-weight:700;
+    background:rgba(226,180,133,.18);color:var(--gold-bright);font-size:.9rem}
+  .opt.correct{background:rgba(123,216,164,.16);border-color:var(--ok)}
+  .opt.correct .k{background:var(--ok);color:#06301a}
+  .opt.wrong{background:rgba(255,138,138,.14);border-color:var(--bad);animation:shake .4s}
+  .opt.wrong .k{background:var(--bad);color:#3a0a0a}
+  .opt:disabled{cursor:default}
+  .opt:disabled:not(.correct):not(.wrong){opacity:.5}
+  @keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+
+  .feedback{display:none;margin-top:20px;padding:16px 18px;border-radius:16px;line-height:1.6;font-size:1rem;
+    background:rgba(226,180,133,.1);border-left:4px solid var(--gold)}
+  .feedback.show{display:block;animation:fade .4s ease both}
+  .feedback b{font-family:var(--title);letter-spacing:.05em;display:block;margin-bottom:4px;font-size:1.1rem}
+  .feedback.ok b{color:var(--ok)} .feedback.no b{color:var(--bad)}
+  .next{display:none;margin:22px auto 0}
+  .next.show{display:block}
+
+  .banner{display:none;margin:14px auto 0;text-align:center;font-family:var(--title);letter-spacing:.18em;text-transform:uppercase;
+    font-size:clamp(.85rem,2.4vw,1.05rem);color:#2a1a05;padding:9px 26px;border-radius:999px;width:fit-content;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));box-shadow:0 0 30px rgba(246,210,143,.5);animation:glowb 2.5s ease-in-out infinite}
+  @keyframes glowb{50%{box-shadow:0 0 50px rgba(246,210,143,.95)}}
+  .card.bonus{border-color:var(--gold-bright);box-shadow:0 0 0 6px rgba(246,210,143,.16),0 0 70px rgba(246,210,143,.3),0 30px 80px rgba(0,0,0,.65)}
+  .card.bonus .tag{background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep));color:#2a1a05;border-color:transparent;font-weight:700}
+  .chip.star::before{content:"★";color:var(--gold-bright)}
+  .subtitle2{font-family:var(--title);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-size:.85rem;margin:6px 0 10px}
+
+  /* ---------- FINAL ---------- */
+  .final{margin-top:5vh;text-align:center;max-width:680px}
+  .final .psi{font-size:4rem;display:block;margin-bottom:6px;animation:glow 3s ease-in-out infinite}
+  @keyframes glow{50%{text-shadow:0 0 40px rgba(246,210,143,1)}}
+  .final h2{font-family:var(--title);font-weight:900;text-transform:uppercase;letter-spacing:.1em;font-size:clamp(2rem,7vw,3.8rem);line-height:1.15;
+    background:linear-gradient(180deg,#fff0c9,var(--gold) 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .final p{color:#d6cab3;margin:18px 0 8px;font-size:1.15rem;line-height:1.7}
+  .score{font-family:var(--title);font-size:1.3rem;color:var(--gold-bright);margin:12px 0 26px}
+  .final .chips{margin-bottom:30px}
+
+  .mute{position:fixed;left:16px;top:16px;z-index:10;background:rgba(0,0,0,.3);border:1px solid rgba(226,180,133,.4);color:var(--gold);
+    width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:1.1rem}
+  footer{margin-top:auto;padding-top:30px;font-size:.8rem;color:#8c8271;text-align:center;letter-spacing:.08em}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<canvas id="confetti"></canvas>
+<div class="moon"></div>
+<svg class="tree" viewBox="0 0 200 240" aria-hidden="true">
+  <g fill="none" stroke="#e2b485" stroke-width="3" stroke-linecap="round">
+    <path d="M100 235 C100 190 98 160 100 120"/><path d="M100 160 C80 140 60 135 40 110"/>
+    <path d="M100 140 C125 120 150 118 170 90"/><path d="M100 120 C95 95 80 80 70 50"/>
+    <path d="M100 120 C108 90 120 75 130 45"/><path d="M60 128 C48 120 38 122 24 108"/>
+  </g>
+  <g fill="#f6d28f"><circle cx="40" cy="108" r="9"/><circle cx="170" cy="88" r="10"/><circle cx="70" cy="48" r="9"/><circle cx="130" cy="43" r="10"/><circle cx="24" cy="106" r="6"/><circle cx="100" cy="30" r="12"/></g>
+</svg>
+<button class="mute" id="mute" title="Sonido" aria-label="Activar o desactivar sonido">🔊</button>
+
+<main>
+  <header>
+    <div class="psi">Ψ</div>
+    <h1>Las Necesidades</h1>
+    <div class="sub">La ruleta de las preguntas</div>
+  </header>
+
+  <!-- INTRO -->
+  <section class="screen active" id="s-intro">
+    <div class="intro">
+      <p class="big">Seis participantes, seis preguntas<br>El destino decide quién responde</p>
+      <p>Gira la ruleta</p>
+      <br>
+      <button class="btn" id="start">Comenzar</button>
+    </div>
+  </section>
+
+  <!-- RULETA -->
+  <section class="screen" id="s-wheel">
+    <div class="banner" id="banner">✦ Ronda de puntos extra ✦</div>
+    <div class="wheel-area">
+      <div class="wheel-wrap">
+        <svg class="pointer" viewBox="0 0 44 58"><defs><linearGradient id="pg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff1c9"/><stop offset="1" stop-color="#b8843f"/></linearGradient></defs>
+          <path d="M22 58 L2 14 A22 22 0 1 1 42 14 Z" fill="url(#pg)" stroke="#6b4513" stroke-width="2"/><circle cx="22" cy="21" r="7" fill="#0b1026"/></svg>
+        <canvas id="wheel" width="1080" height="1080"></canvas>
+        <div class="hub">Ψ</div>
+      </div>
+      <div class="side">
+        <div class="counter" id="counter">Quedan<b>6</b>en la ruleta</div>
+        <button class="btn" id="spin">¡Girar!</button>
+        <div>
+          <div class="label" id="done-label" style="text-align:center;margin-bottom:10px">Ya participaron</div>
+          <div class="chips" id="done"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTRO RONDA EXTRA -->
+  <section class="screen" id="s-bonus">
+    <div class="final">
+      <span class="psi">✦</span>
+      <h2 style="font-size:clamp(1.8rem,6vw,3.2rem)">Preguntas de<br>puntos extra</h2>
+      <p>Volvemos a girar la ruleta con los seis nombres<br>Pero esta vez <b style="color:var(--gold-bright)">solo dos</b> tendrán la oportunidad de responder</p>
+      <br>
+      <button class="btn" id="bonus-go">Ir a la ruleta extra</button>
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="screen" id="s-final">
+    <div class="final">
+      <span class="psi">Ψ</span>
+      <h2>Gracias<br>por participar</h2>
+      <p>Cada ser contingente depende de otro para existir…<br>y este juego, de todos ustedes.</p>
+      <div class="score" id="score"></div>
+      <div class="subtitle2">Preguntas principales</div>
+      <div class="chips" id="done-final" style="margin-bottom:14px"></div>
+      <div class="subtitle2">Puntos extra</div>
+      <div class="chips" id="done-bonus"></div>
+      <button class="btn ghost" id="again">Jugar de nuevo</button>
+    </div>
+  </section>
+
+
+</main>
+
+<!-- PREGUNTA -->
+<div class="overlay" id="overlay">
+  <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="qtext">
+    <div class="who">
+      <div class="avatar" id="avatar">K</div>
+      <div><small>Le toca a</small><strong id="pname">Kevin</strong></div>
+      <div class="tag" id="qtag">Pregunta 1 de 6</div>
+    </div>
+    <div class="q" id="qtext"></div>
+    <div class="opts" id="opts"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn next" id="next">Continuar</button>
+  </div>
+</div>
+
+<script>
+/* ============ DATOS (extraídos de la presentación «Las Necesidades») ============ */
+const NAMES = ["Kevin","Diego","Emmanuel","Chuy","Poxtan","Milton"];
+
+const QUESTIONS = [
+  {
+    topic:"Necesidad",
+    q:"De modo general, ¿qué denota la necesidad?",
+    options:[
+      "Una conexión estricta entre seres, entre los elementos de un ser, o entre un ser y su existencia",
+      "La carencia de bienes materiales indispensables para vivir",
+      "Un deseo intenso que depende del gusto de cada persona",
+      "La libertad absoluta de elegir entre varias opciones"
+    ],
+    answer:0,
+    explain:"La necesidad es una noción primaria y fundamental: expresa una conexión estricta entre seres, dentro de un ser, o entre el ser y su existencia."
+  },
+  {
+    topic:"Lógica escolástica",
+    q:"Según los escolásticos, ¿qué son los juicios en «materia necesaria»?",
+    options:[
+      "Aquellos cuya verdad depende de las circunstancias del momento",
+      "Aquellos cuya verdad no depende de las circunstancias ni de la experiencia, sino de la propia naturaleza de las cosas",
+      "Aquellos que solo pueden comprobarse con la experiencia diaria",
+      "Aquellos que son falsos en cualquier situación"
+    ],
+    answer:1,
+    explain:"Los juicios en materia necesaria se fundamentan en la naturaleza de las cosas. En cambio, los de materia contingente pueden ser verdaderos o falsos según las circunstancias."
+  },
+  {
+    topic:"Metafísica del ser",
+    q:"¿Por qué los seres que conocemos en la vida cotidiana son «contingentes»?",
+    options:[
+      "Porque existen por sí mismos y su existencia forma parte de su esencia",
+      "Porque son eternos, perfectos e infinitos",
+      "Porque tienen un principio, experimentan cambios y pueden dejar de existir, por lo que necesitan una causa externa",
+      "Porque no pueden ser conocidos por la razón"
+    ],
+    answer:2,
+    explain:"Un ser contingente tiene principio, cambia y puede dejar de existir; por eso su existencia necesita una causa externa que la explique."
+  },
+  {
+    topic:"Santo Tomás y el ser necesario",
+    q:"Para Santo Tomás, ¿quién es el único ser absolutamente necesario y por qué?",
+    options:[
+      "El hombre, porque es racional",
+      "El universo, porque siempre ha estado en movimiento",
+      "La naturaleza, porque sus leyes nunca fallan",
+      "Dios, porque su esencia consiste en existir, es eterno, perfecto e infinito y no necesita ser creado por nadie"
+    ],
+    answer:3,
+    explain:"Todos los demás seres dependen de Dios para existir; Él es el único ser necesario que origina a los contingentes."
+  },
+  {
+    topic:"Tipos de necesidad",
+    q:"Las leyes de la naturaleza se cumplen siempre que estén presentes las condiciones requeridas. ¿A qué tipo de necesidad corresponde esto?",
+    options:[
+      "Necesidad física, también llamada condicional, hipotética o consecuente",
+      "Necesidad metafísica, que es absoluta",
+      "Necesidad moral, propia de las personas libres",
+      "Necesidad de precepto"
+    ],
+    answer:0,
+    explain:"La necesidad física no es absolutamente obligatoria ni completamente opcional: se cumple necesariamente cuando se dan las condiciones. La metafísica, en cambio, es absoluta (p. ej., que el hombre sea racional)."
+  },
+  {
+    topic:"Medios de salvación",
+    q:"En teología, ¿qué es la «necesidad de medios» en relación con la salvación?",
+    options:[
+      "Cumplir un mandato religioso cuya omisión no impide necesariamente salvarse",
+      "Lo que es indispensable para salvarse, como la fe y el bautismo",
+      "Aquello que solo es útil pero nunca indispensable",
+      "Una influencia que elimina por completo la libertad"
+    ],
+    answer:1,
+    explain:"La necesidad de medios se refiere a lo indispensable para salvarse (fe y bautismo). La necesidad de precepto es cumplir un mandato cuya omisión no culpable no impide la salvación."
+  }
+];
+
+const BONUS = [
+  {
+    topic:"Necesidad en teología",
+    q:"En teología, ¿cuál es un ejemplo de necesidad ABSOLUTA?",
+    options:[
+      "Que el hombre necesite la revelación y la gracia para comprender suficientemente las verdades de la ley natural",
+      "La revelación para conocer los misterios de la fe y la gracia para realizar actos sobrenaturales",
+      "Cumplir un mandato religioso cuya omisión no es culpable",
+      "Que alguien actúe honestamente o diga la verdad"
+    ],
+    answer:1,
+    explain:"La necesidad absoluta significa que algo es indispensable para alcanzar un fin. La necesidad moral, en cambio, es lo que resulta necesario por las circunstancias humanas (como comprender la ley natural)."
+  },
+  {
+    topic:"Necesidad moral",
+    q:"Al hablar de las influencias que pueden limitar la libertad de decisión, ¿qué dos ideas surgen según la presentación?",
+    options:[
+      "El racionalismo y el empirismo",
+      "El fatalismo y el determinismo",
+      "El escolasticismo y el contingentismo",
+      "El idealismo y el materialismo"
+    ],
+    answer:1,
+    explain:"El fatalismo y el determinismo sostienen que nuestras acciones están condicionadas por factores físicos o psicológicos."
+  }
+];
+
+/* ============ ESTADO ============ */
+const COLORS = ["#2f3a8f","#b8843f","#1f6f78","#7a3b78","#c4663a","#3d7a4f"];
+let remaining, done, order, current, rotation = 0, spinning = false, correctCount = 0, qIndex = 0, muted = false,
+    phase = "main", bonusOrder = [], bonusIndex = 0, bonusCorrect = 0, bonusDone = [];
+
+const $ = id => document.getElementById(id);
+const wheel = $("wheel"), ctx = wheel.getContext("2d");
+const shuffle = a => { a = a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ============ AUDIO ============ */
+let actx;
+function beep(freq, dur, type="triangle", vol=.06, when=0){
+  if(muted) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    o.connect(g); g.connect(actx.destination);
+    const t = actx.currentTime + when;
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+const tickSound = () => beep(900,.04,"square",.025);
+const winSound  = () => [523,659,784,1047].forEach((f,i)=>beep(f,.35,"triangle",.07,i*.12));
+const okSound   = () => [660,880,1320].forEach((f,i)=>beep(f,.3,"sine",.08,i*.1));
+const noSound   = () => [300,220].forEach((f,i)=>beep(f,.35,"sawtooth",.04,i*.15));
+$("mute").onclick = () => { muted=!muted; $("mute").textContent = muted?"🔇":"🔊"; };
+
+/* ============ RULETA ============ */
+function drawWheel(){
+  const W = wheel.width, R = W/2, n = remaining.length, seg = 2*Math.PI/n;
+  ctx.clearRect(0,0,W,W);
+  ctx.save(); ctx.translate(R,R); ctx.rotate(rotation);
+  remaining.forEach((name,i)=>{
+    const a0 = i*seg, a1 = (i+1)*seg;
+    const col = COLORS[NAMES.indexOf(name) % COLORS.length];
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R-6,a0,a1); ctx.closePath();
+    const g = ctx.createRadialGradient(0,0,R*.1,0,0,R);
+    g.addColorStop(0,shade(col,.25)); g.addColorStop(1,col);
+    ctx.fillStyle = g; ctx.fill();
+    ctx.lineWidth = 5; ctx.strokeStyle = "rgba(246,210,143,.9)"; ctx.stroke();
+    // texto
+    ctx.save(); ctx.rotate(a0+seg/2); ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillStyle="#fff6e0"; ctx.shadowColor="rgba(0,0,0,.55)"; ctx.shadowBlur=8;
+    const fs = n<=2 ? 96 : n<=4 ? 80 : 68;
+    ctx.font = `700 ${fs}px Cinzel, Georgia, serif`;
+    ctx.fillText(name, R-64, 0);
+    ctx.restore();
+  });
+  ctx.restore();
+  // puntitos dorados del borde
+  ctx.save(); ctx.translate(R,R);
+  for(let i=0;i<36;i++){
+    const a = i*(Math.PI*2/36);
+    ctx.beginPath(); ctx.arc(Math.cos(a)*(R-22),Math.sin(a)*(R-22),5,0,7);
+    ctx.fillStyle="rgba(255,241,201,.85)"; ctx.fill();
+  }
+  ctx.restore();
+}
+function shade(hex,amt){ // aclara un color hex
+  const n=parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255;
+  r=Math.min(255,Math.round(r+(255-r)*amt)); g=Math.min(255,Math.round(g+(255-g)*amt)); b=Math.min(255,Math.round(b+(255-b)*amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+function spin(){
+  if(spinning || !remaining.length) return;
+  spinning = true; $("spin").disabled = true;
+  const n = remaining.length, seg = 2*Math.PI/n;
+  const winner = Math.floor(Math.random()*n);
+  const jitter = (Math.random()-.5)*seg*.7;
+  // el puntero está arriba (-90°). Centro del sector ganador debe quedar ahí.
+  const base = -Math.PI/2 - (winner+.5)*seg + jitter;
+  const start = rotation;
+  let target = base; while(target < start + Math.PI*2*5) target += Math.PI*2;
+  const dur = 5200 + Math.random()*1200, t0 = performance.now();
+  let lastIdx = idxAt(start, n);
+  const ptr = document.querySelector(".pointer");
+  (function frame(now){
+    const t = Math.min(1,(now-t0)/dur), e = 1 - Math.pow(1-t,4);
+    rotation = start + (target-start)*e;
+    drawWheel();
+    const idx = idxAt(rotation, n);
+    if(idx !== lastIdx){ lastIdx = idx; tickSound(); ptr.classList.remove("tick"); void ptr.offsetWidth; ptr.classList.add("tick"); }
+    if(t<1) requestAnimationFrame(frame);
+    else { rotation = target % (Math.PI*2); drawWheel(); spinning=false; winSound(); setTimeout(()=>ask(remaining[winner]),700); }
+  })(t0);
+}
+function idxAt(rot,n){ const seg=2*Math.PI/n; const a=((-Math.PI/2 - rot)%(2*Math.PI)+2*Math.PI)%(2*Math.PI); return Math.floor(a/seg)%n; }
+
+/* ============ PREGUNTA ============ */
+function ask(name){
+  current = name;
+  const bonus = phase === "bonus";
+  const q = bonus ? bonusOrder[bonusIndex] : order[qIndex];
+  $("card").classList.toggle("bonus", bonus);
+  $("avatar").textContent = name[0];
+  $("pname").textContent = name;
+  $("qtag").innerHTML = bonus ? `✦ Punto extra ${bonusIndex+1} de ${BONUS.length}<br>${q.topic}` : `Pregunta ${qIndex+1} de ${NAMES.length}<br>${q.topic}`;
+  $("qtext").textContent = q.q;
+  $("feedback").className = "feedback"; $("next").classList.remove("show");
+  const letters = ["A","B","C","D"];
+  const idxs = shuffle(q.options.map((_,i)=>i));
+  $("opts").innerHTML = "";
+  idxs.forEach((orig,pos)=>{
+    const b = document.createElement("button");
+    b.className = "opt"; b.dataset.orig = orig;
+    b.innerHTML = `<span class="k">${letters[pos]}</span><span></span>`;
+    b.lastChild.textContent = q.options[orig];
+    b.onclick = () => answer(orig);
+    $("opts").appendChild(b);
+  });
+  $("overlay").classList.add("show");
+}
+
+function answer(orig){
+  const bonus = phase === "bonus";
+  const q = bonus ? bonusOrder[bonusIndex] : order[qIndex], ok = orig === q.answer;
+  document.querySelectorAll(".opt").forEach(b=>{
+    b.disabled = true;
+    if(+b.dataset.orig === q.answer) b.classList.add("correct");
+    else if(+b.dataset.orig === orig) b.classList.add("wrong");
+  });
+  const fb = $("feedback");
+  fb.className = "feedback show " + (ok?"ok":"no");
+  fb.innerHTML = `<b>${ok?"¡Correcto!":"No exactamente…"}</b>${q.explain}`;
+  if(ok){ if(bonus) bonusCorrect++; else correctCount++; okSound(); confetti(); } else noSound();
+  (bonus ? bonusDone : done).push({name:current, ok});
+  const last = bonus ? bonusIndex === BONUS.length-1 : remaining.length === 1;
+  $("next").textContent = last ? "Finalizar" : "Continuar";
+  $("next").classList.add("show");
+  $("next").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function next(){
+  $("overlay").classList.remove("show");
+  remaining = remaining.filter(n => n !== current);   // sale de la ruleta automáticamente
+  if(phase === "main"){
+    qIndex++;
+    if(!remaining.length){ startBonusIntro(); return; }
+  } else {
+    bonusIndex++;
+    if(bonusIndex >= BONUS.length){ finish(); return; }
+  }
+  renderWheelUI(); $("spin").disabled = false;
+}
+
+function chipsHTML(list, star){ return list.map(d=>`<span class="chip ${star?"star":(d.ok?"ok":"no")}">${d.name}${star?(d.ok?" · +1":" · 0"):""}</span>`).join(""); }
+function renderWheelUI(){
+  const bonus = phase === "bonus";
+  $("banner").style.display = bonus ? "block" : "none";
+  if(bonus){
+    const k = BONUS.length - bonusIndex;
+    $("counter").innerHTML = `Quedan<b>${k}</b>turno${k>1?"s":""} extra`;
+    $("done-label").textContent = "Ya respondieron extra";
+    $("done").innerHTML = chipsHTML(bonusDone, true);
+  } else {
+    $("counter").innerHTML = `Quedan<b>${remaining.length}</b>en la ruleta`;
+    $("done-label").textContent = "Ya participaron";
+    $("done").innerHTML = chipsHTML(done);
+  }
+  drawWheel();
+}
+
+function startBonusIntro(){ show("s-bonus"); winSound(); confetti(150); }
+function startBonus(){
+  phase = "bonus"; remaining = NAMES.slice(); rotation = 0;
+  bonusOrder = shuffle(BONUS); bonusIndex = 0; bonusDone = []; bonusCorrect = 0;
+  $("spin").disabled = false; renderWheelUI(); show("s-wheel");
+}
+
+function finish(){
+  const total = correctCount + bonusCorrect;
+  $("score").innerHTML = `Respuestas correctas: ${correctCount} de ${NAMES.length}<br>Puntos extra: ${bonusCorrect} de ${BONUS.length}<br><span style="font-size:1.7rem;color:var(--ink)">Total: ${total} puntos</span>`;
+  $("done-final").innerHTML = chipsHTML(done);
+  $("done-bonus").innerHTML = chipsHTML(bonusDone, true);
+  show("s-final"); winSound(); confetti(220);
+}
+
+function start(){
+  phase = "main"; bonusDone = []; bonusCorrect = 0; bonusIndex = 0;
+  remaining = NAMES.slice(); done = []; order = shuffle(QUESTIONS); qIndex = 0; correctCount = 0; rotation = 0;
+  $("spin").disabled = false; renderWheelUI(); show("s-wheel");
+}
+
+$("start").onclick = start; $("spin").onclick = spin; $("next").onclick = next; $("again").onclick = start; $("bonus-go").onclick = startBonus;
+
+/* ============ FONDO DE ESTRELLAS ============ */
+const sc = $("stars"), sx = sc.getContext("2d"); let stars=[];
+function initStars(){ sc.width=innerWidth; sc.height=innerHeight;
+  stars = Array.from({length:Math.min(140,Math.floor(innerWidth*innerHeight/9000))},()=>({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.6+.3,p:Math.random()*6,s:Math.random()*.02+.005,gold:Math.random()<.3})); }
+(function twinkle(t){ sx.clearRect(0,0,sc.width,sc.height);
+  stars.forEach(s=>{ const a=.35+.65*Math.abs(Math.sin(t*s.s*.1+s.p)); sx.beginPath(); sx.arc(s.x,s.y,s.r,0,7); sx.fillStyle=s.gold?`rgba(246,210,143,${a})`:`rgba(255,255,255,${a*.8})`; sx.fill(); });
+  requestAnimationFrame(twinkle); })(0);
+addEventListener("resize",initStars); initStars();
+
+/* ============ CONFETI DORADO ============ */
+const cc = $("confetti"), cx = cc.getContext("2d"); let parts=[], running=false;
+function sizeC(){ cc.width=innerWidth; cc.height=innerHeight; } addEventListener("resize",sizeC); sizeC();
+function confetti(n=110){
+  const cols=["#f6d28f","#e2b485","#fff1c9","#b8843f","#7bd8a4","#9fb4ff"];
+  for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.45,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,
+    w:Math.random()*8+4,h:Math.random()*5+3,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[Math.floor(Math.random()*cols.length)],life:0});
+  if(!running){ running=true; requestAnimationFrame(loopC); }
+}
+function loopC(){
+  cx.clearRect(0,0,cc.width,cc.height);
+  parts.forEach(p=>{ p.vy+=.35; p.x+=p.vx; p.y+=p.vy; p.vx*=.99; p.r+=p.vr; p.life++;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c; cx.globalAlpha=Math.max(0,1-p.life/140); cx.fillRect(-p.w/2,-p.h/2,p.w,p.h); cx.restore(); });
+  parts = parts.filter(p=>p.life<140 && p.y<innerHeight+40);
+  if(parts.length) requestAnimationFrame(loopC); else { running=false; cx.clearRect(0,0,cc.width,cc.height); }
+}
+
+/* Dibujo inicial de la ruleta */
+remaining = NAMES.slice(); done=[]; drawWheel();
+</script>
+</body>
+</html>
